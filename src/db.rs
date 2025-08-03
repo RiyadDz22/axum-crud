@@ -1,8 +1,7 @@
 use sqlx::postgres::PgPoolOptions;
-use std::env;
-pub async fn initDB() -> sqlx::PgPool {
+pub async fn init_db() -> sqlx::PgPool {
     let db_url = std::env::var("DB_URL").expect("database url not found");
-    lPgPoolOptions::new()
+    PgPoolOptions::new()
         .max_connections(16)
         .connect(&db_url)
         .await

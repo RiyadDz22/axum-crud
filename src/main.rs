@@ -1,12 +1,15 @@
+mod db;
+mod models;
 use axum::{
     Json, Router,
-    extract::{Path, State},
+    extract::State,
     http::StatusCode,
-    routing::{delete, get, patch, post, put},
+    routing::{delete, get, patch},
 };
-use serde::{Deserialize, Serialize};
+use db::init_db;
+use models::{CreateTaskReq, CreateTaskRow, TaskRow};
 use serde_json::json;
-use sqlx::{PgPool, postgres::PgPoolOptions, prelude::FromRow};
+use sqlx::PgPool;
 use tokio::net::TcpListener;
 
 #[tokio::main]
@@ -16,14 +19,9 @@ async fn main() {
 
     //exposing .env file vars
     let server_address = std::env::var("SERVER_ADDRESS").unwrap_or("127.0.0.1:3000".to_owned());
-    let db_url = std::env::var("DB_URL").expect("database url not found");
 
     //create db pool
-    let db_pool = PgPoolOptions::new()
-        .max_connections(16)
-        .connect(&db_url)
-        .await
-        .expect("can't connect to the db");
+    let db_pool = init_db().await;
 
     //tcp_listner
     let listner = TcpListener::bind(server_address)
@@ -41,11 +39,6 @@ async fn main() {
     axum::serve(listner, app)
         .await
         .expect("error serving application");
-}
-#[derive(Serialize, FromRow)]
-struct TaskRow {
-    task_id: i32,
-    title: String,
 }
 
 async fn get_tasks(
@@ -65,16 +58,6 @@ async fn get_tasks(
         StatusCode::OK,
         json!({ "success": true, "data": rows }).to_string(),
     ))
-}
-
-#[derive(Deserialize)]
-struct CreateTaskReq {
-    title: String,
-}
-
-#[derive(Serialize, FromRow)]
-struct CreateTaskRow {
-    task_id: i32,
 }
 
 async fn create_task(
