@@ -1,0 +1,18 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+#axum
+axum = "0.7.4"
+tokio = { version = "1.35.1", features = ["full"] }
+
+#postgres
+sqlx = { version = "0.7", features = ["postgres", "macros", "runtime-tokio-native-tls", "uuid"] }
+#serde
+serde = { version = "1.0.195", features = ["derive"] }
+serde_json = {version = "1.0.111"}
+
+#env
+dotenvy = "0.15.7"
