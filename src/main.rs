@@ -1,16 +1,15 @@
 mod db;
+mod handlers;
 mod models;
 use axum::{
-    Json, Router,
-    extract::State,
-    http::StatusCode,
-    routing::{delete, get, patch},
+    Router,
+    routing::{get, patch},
 };
 use db::init_db;
-use models::{CreateTaskReq, CreateTaskRow, TaskRow};
-use serde_json::json;
-use sqlx::PgPool;
+use handlers::{create_task, get_tasks};
 use tokio::net::TcpListener;
+
+use crate::handlers::{delete_task, update_task};
 
 #[tokio::main]
 async fn main() {
@@ -27,7 +26,7 @@ async fn main() {
     let listner = TcpListener::bind(server_address)
         .await
         .expect("can't connect to the server");
-    println!("connecting to {}", listner.local_addr().unwrap());
+    println!("connected to {}", listner.local_addr().unwrap());
 
     //compose the routes
     let app = Router::new()
@@ -39,57 +38,4 @@ async fn main() {
     axum::serve(listner, app)
         .await
         .expect("error serving application");
-}
-
-async fn get_tasks(
-    State(db_pool): State<PgPool>,
-) -> Result<(StatusCode, String), (StatusCode, String)> {
-    let rows = sqlx::query_as::<_, TaskRow>("SELECT task_id, title FROM tasks ORDER BY task_id")
-        .fetch_all(&db_pool)
-        .await
-        .map_err(|e| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                json!({ "success": false, "message": e.to_string() }).to_string(),
-            )
-        })?;
-
-    Ok((
-        StatusCode::OK,
-        json!({ "success": true, "data": rows }).to_string(),
-    ))
-}
-
-async fn create_task(
-    State(db_pool): State<PgPool>,
-    Json(task): Json<CreateTaskReq>,
-) -> Result<(StatusCode, String), (StatusCode, String)> {
-    let row = sqlx::query_as::<_, CreateTaskRow>(
-        "INSERT INTO tasks (title) VALUES ($1) RETURNING task_id",
-    )
-    .bind(task.title)
-    .fetch_one(&db_pool)
-    .await
-    .map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            json!({ "success": false, "message": e.to_string() }).to_string(),
-        )
-    })?;
-
-    Ok((
-        StatusCode::CREATED,
-        json!({ "success": true, "data": row }).to_string(),
-    ))
-}
-async fn update_task(
-    State(db_pool): State<PgPool>,
-) -> Result<(StatusCode, String), (StatusCode, String)> {
-    todo!();
-}
-
-async fn delete_task(
-    State(db_pool): State<PgPool>,
-) -> Result<(StatusCode, String), (StatusCode, String)> {
-    todo!();
 }
