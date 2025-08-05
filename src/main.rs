@@ -6,10 +6,8 @@ use axum::{
     routing::{get, patch},
 };
 use db::init_db;
-use handlers::{create_task, get_tasks};
+use handlers::{create_task, delete_task, get_tasks, update_task};
 use tokio::net::TcpListener;
-
-use crate::handlers::{delete_task, update_task};
 
 #[tokio::main]
 async fn main() {

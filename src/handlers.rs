@@ -1,6 +1,9 @@
 use crate::models::{CreateTaskReq, CreateTaskRow, TaskRow};
-
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
+};
 use serde_json::json;
 use sqlx::PgPool;
 
@@ -47,13 +50,45 @@ pub async fn create_task(
 }
 
 pub async fn update_task(
-    State(_db_pool): State<PgPool>,
+    State(db_pool): State<PgPool>,
+    Path(task_id): Path<i32>,
+    Json(task): Json<CreateTaskReq>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
-    todo!()
+    sqlx::query("UPDATE tasks SET title = $1 WHERE task_id = $2")
+        .bind(&task.title)
+        .bind(task_id)
+        .execute(&db_pool)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                json!({ "success": false, "message": e.to_string() }).to_string(),
+            )
+        })?;
+
+    Ok((
+        StatusCode::OK,
+        json!({ "success": true, "message": "Task updated successfully" }).to_string(),
+    ))
 }
 
 pub async fn delete_task(
-    State(_db_pool): State<PgPool>,
+    State(db_pool): State<PgPool>,
+    Path(task_id): Path<i32>,
 ) -> Result<(StatusCode, String), (StatusCode, String)> {
-    todo!()
+    sqlx::query("DELETE FROM tasks WHERE task_id = $1")
+        .bind(task_id)
+        .execute(&db_pool)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                json!({ "success": false, "message": e.to_string() }).to_string(),
+            )
+        })?;
+
+    Ok((
+        StatusCode::CREATED,
+        json!({ "success": true, "message": "Task deleted successfully" }).to_string(),
+    ))
 }
